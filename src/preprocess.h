@@ -115,6 +115,33 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(robosense_ros::Point,
                                           (double, timestamp, timestamp)
 )
 
+
+namespace innovusion_ros {
+  struct EIGEN_ALIGN16 Point {
+    PCL_ADD_POINT4D;  // This adds x, y, z
+    double timestamp;
+    uint16_t intensity;
+    uint8_t flags;
+    uint8_t elongation;
+    uint16_t scan_id;
+    uint16_t scan_idx;
+    uint8_t is_2nd_return;
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+  };
+}
+
+POINT_CLOUD_REGISTER_POINT_STRUCT(innovusion_ros::Point,
+    (float, x, x)
+    (float, y, y)
+    (float, z, z)
+    (double, timestamp, timestamp)
+    (uint16_t, intensity, intensity)
+    (uint8_t, flags, flags)
+    (uint8_t, elongation, elongation)
+    (uint16_t, scan_id, scan_id)
+    (uint16_t, scan_idx, scan_idx)
+    (uint8_t, is_2nd_return, is_2nd_return)
+)
 class Preprocess
 {
   public:
@@ -145,6 +172,7 @@ class Preprocess
   void velodyne_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
   void velodyne_handler_kitti(const sensor_msgs::PointCloud2::ConstPtr &msg);
   void l515_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
+  void innovusion_handler(const sensor_msgs::PointCloud2::ConstPtr &msg);
   void give_feature(PointCloudXYZI &pl, vector<orgtype> &types);
   void pub_func(PointCloudXYZI &pl, const ros::Time &ct);
   int  plane_judge(const PointCloudXYZI &pl, vector<orgtype> &types, uint i, uint &i_nex, Eigen::Vector3d &curr_direct);
