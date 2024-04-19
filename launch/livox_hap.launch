@@ -3,6 +3,7 @@
 
 	<arg name="rviz" default="true" />
     <arg name="type" default="normal" doc="type [normal, modbus]"/>
+	<arg name="bd_list" default="3GGDLAM001ZY59" />
 	<rosparam command="load" file="$(find lidar_imu_init)/config/hap.yaml" />
 
 	<node pkg="lidar_imu_init" type="li_init" name="laserMapping" output="screen"  />
@@ -10,9 +11,11 @@
 	<param name="point_filter_num" type="int" value="3"/>
 	<param name="max_iteration" type="int" value="5" />
 	<param name="cube_side_length" type="double" value="2000" />
-
+    <include file="$(find livox_ros_driver2)/launch_ROS1/msg_HAP.launch">
+        <arg name="bd_list" value="$(arg bd_list)" />
+    </include>
     <node pkg="wit_ros_imu" type="wit_$(arg type)_ros.py" name="imu" output="screen">
-        <param name="port"               type = "str"    value="/dev/imu_usb"/>
+        <param name="port"               type = "str"    value="/dev/ttyUSB0"/>
         <param name="baud"               type = "int"    value="115200"/>
     </node>
 
