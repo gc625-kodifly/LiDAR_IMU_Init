@@ -59,6 +59,8 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen3 REQUIRED)
 find_package(PCL 1.8 REQUIRED)
 find_package(Ceres REQUIRED)
+find_package(libLAS)  
+find_package(LASzip)
 
 message(Eigen: ${EIGEN3_INCLUDE_DIR})
 
@@ -74,6 +76,8 @@ include_directories(
   ${EIGEN3_INCLUDE_DIR}
   ${PCL_INCLUDE_DIRS}
   ${PYTHON_INCLUDE_DIRS}
+  ${libLAS_INCLUDE_DIRS}
+  ${LASZIP_INCLUDE_DIRS}
   include)
 
 generate_messages(
@@ -93,7 +97,7 @@ add_executable(li_init
         include/LI_init/LI_init.cpp
         src/preprocess.cpp)
 
-target_link_libraries(li_init ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES} ${CERES_LIBRARIES})
+target_link_libraries(li_init ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${PYTHON_LIBRARIES} ${CERES_LIBRARIES} ${libLAS_LIBRARIES} laszip )
 target_include_directories(li_init PRIVATE ${PYTHON_INCLUDE_DIRS})
 
 

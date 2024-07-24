@@ -50,7 +50,9 @@
 #include "preprocess.h"
 #include <ikd-Tree/ikd_Tree.h>
 #include <LI_init/LI_init.h>
-
+#include <liblas/capi/las_config.h>
+#include <laszip/laszip_api.h>
+#include <pcl/common/common.h>
 #ifndef DEPLOY
 #include "matplotlibcpp.h"
 namespace plt = matplotlibcpp;
@@ -98,6 +100,7 @@ vector<double> Rot_LI_cov(3, 0.00005);
 V3D mean_acc = Zero3d;
 ofstream fout_result;
 
+std::string pcd_save_path;
 
 vector<BoxPointType> cub_needrm;
 deque<PointCloudXYZI::Ptr> lidar_buffer;
@@ -149,6 +152,162 @@ sensor_msgs::Imu IMU_sync;
 shared_ptr<Preprocess> p_pre(new Preprocess());
 shared_ptr<LI_Init> Init_LI(new LI_Init());
 
+static void dll_error(laszip_POINTER laszip) {
+    if (laszip) {
+        laszip_CHAR* error;
+        if (laszip_get_error(laszip, &error)) {
+            fprintf(stderr, "DLL ERROR: getting error messages\n");
+        }
+        if (error) {
+            fprintf(stderr, "DLL ERROR MESSAGE: %s\n", error);
+        } else {
+            fprintf(stderr, "DLL ERROR MESSAGE: unknown error\n");
+        }
+    }
+}
+
+static void byebye(bool error=false, bool wait=false, laszip_POINTER laszip=0)
+{
+  if (error)
+  {
+    dll_error(laszip);
+  }
+  if (wait)
+  {
+    fprintf(stderr,"<press ENTER>\n");
+    getc(stdin);
+  }
+  exit(error);
+}
+
+
+
+void pclToLaszip(const pcl::PointCloud<pcl::PointXYZINormal>::Ptr& cloud, const std::string& filename) {
+
+    ROS_INFO("Trying to save: %s", filename.c_str());
+    int num_points = cloud->size();
+    // Variables to hold the min and max 3D coordinates
+    pcl::PointXYZINormal minPt, maxPt;
+
+    // Get the minimum and maximum points
+    pcl::getMinMax3D(*cloud, minPt, maxPt);
+    
+    ROS_INFO("Max x: %f", maxPt.x);
+    ROS_INFO("Max y: %f", maxPt.y);
+    ROS_INFO("Max z: %f", maxPt.z);
+    ROS_INFO("Min x: %f", minPt.x);
+    ROS_INFO("Min y: %f", minPt.y);
+    ROS_INFO("Min z: %f", minPt.z);
+    ROS_INFO("Num pts: %d", num_points);
+
+    laszip_POINTER laszip_writer;
+
+    if (laszip_create(&laszip_writer))
+    {
+      fprintf(stderr,"DLL ERROR: creating laszip writer\n");
+      byebye(true, 1);
+    }
+
+    // get a pointer to the header of the writer so we can populate it
+
+    laszip_header* header;
+
+    if (laszip_get_header_pointer(laszip_writer, &header))
+    {
+      fprintf(stderr,"DLL ERROR: getting header pointer from laszip writer\n");
+      byebye(true, 1, laszip_writer);
+    }
+
+    // populate the header
+
+    header->file_source_ID = 4711;
+    header->global_encoding = (1<<0);             // see LAS specification for details
+    header->version_major = 1;
+    header->version_minor = 2;
+    strncpy(header->system_identifier, "LASzip DLL example 3", 32);
+    header->file_creation_day = 1;
+    header->file_creation_year = 2024;
+    header->point_data_format = 1;
+    header->point_data_record_length = 28;
+    header->number_of_point_records = num_points;
+    header->number_of_points_by_return[0] = 0;
+    header->number_of_points_by_return[1] = 0;
+    header->max_x = maxPt.x;
+    header->max_y = maxPt.y;
+    header->max_z = maxPt.z;
+    header->min_x = minPt.x;
+    header->min_y = minPt.y;
+    header->min_z = minPt.z;
+    char* file_name_out = 0;
+    file_name_out = LASCopyString(filename.c_str());
+    laszip_BOOL compress = (strstr(file_name_out, ".laz") != 0);
+
+    if (laszip_open_writer(laszip_writer, file_name_out, compress))
+    {
+      fprintf(stderr,"DLL ERROR: opening laszip writer for '%s'\n", filename);
+      byebye(true, 1, laszip_writer);
+    }
+
+    laszip_I64 p_count = 0;
+
+    for(int i = 0; i < num_points; i++){
+      pcl::PointXYZINormal pt = cloud->points[i];
+      laszip_point* point;
+      if (laszip_get_point_pointer(laszip_writer, &point))
+      {
+        fprintf(stderr,"DLL ERROR: getting point pointer from laszip writer\n");
+        byebye(true, 1, laszip_writer);
+      }
+      
+      laszip_F64 coordinates[3];
+      coordinates[0] = pt.x;
+      coordinates[1] = pt.y;
+      coordinates[2] = pt.z;
+
+      if (laszip_set_coordinates(laszip_writer, coordinates))
+      {
+        fprintf(stderr,"DLL ERROR: setting coordinates for point %I64d\n", p_count);
+        byebye(true, 1, laszip_writer);
+      }
+
+      point->intensity = pt.intensity;
+      // point->red = pt->r;
+      // point->green = pt->g;
+      // point->blue = pt->b; 
+
+
+      if (laszip_write_point(laszip_writer))
+      {
+        fprintf(stderr,"DLL ERROR: writing point %I64d\n", p_count);
+        byebye(true, 1, laszip_writer);
+      }
+      p_count++;
+
+
+
+    }
+
+    if (laszip_get_point_count(laszip_writer, &p_count))
+    {
+      fprintf(stderr,"DLL ERROR: getting point count\n");
+      byebye(true, 1, laszip_writer);
+    }
+
+    fprintf(stderr,"successfully written %I64d points\n", p_count);
+
+    if (laszip_close_writer(laszip_writer))
+    {
+      fprintf(stderr,"DLL ERROR: closing laszip writer\n");
+      byebye(true, 1, laszip_writer);
+    }
+
+    if (laszip_destroy(laszip_writer))
+    {
+      fprintf(stderr,"DLL ERROR: destroying laszip writer\n");
+      byebye(true, 1);
+    }
+}
+
 
 float calc_dist(PointType p1, PointType p2) {
     float d = (p1.x - p2.x) * (p1.x - p2.x) + (p1.y - p2.y) * (p1.y - p2.y) + (p1.z - p2.z) * (p1.z - p2.z);
@@ -182,8 +341,10 @@ void calcBodyVar(Eigen::Vector3d &pb, const float range_inc,
 
 void SigHandle(int sig) {
     if (pcd_save_en && pcd_save_interval < 0){
-        all_points_dir = string(root_dir + "/PCD/PCD_all" + string(".pcd"));
-        pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
+        // all_points_dir = string(root_dir + "/PCD/PCD_all" + string(".pcd"));
+        // pcd_writer.writeBinary(pcd_save_path, *pcl_wait_save);
+        pclToLaszip(pcl_wait_save, pcd_save_path);
+    
     }
     flg_exit = true;
     ROS_WARN("catch sig %d", sig);
@@ -604,11 +765,13 @@ void publish_frame_world(const ros::Publisher &pubLaserCloudFullRes) {
         scan_wait_num++;
         if (pcl_wait_save->size() > 0 && pcd_save_interval > 0 && scan_wait_num >= pcd_save_interval) {
             pcd_index++;
-            all_points_dir = string(root_dir + "/PCD/PCD") + to_string(pcd_index) + string(".pcd");
+            // all_points_dir = string(root_dir + "/PCD/PCD") + to_string(pcd_index) + string(".pcd");
             cout << "current scan saved to " << all_points_dir << endl;
-            pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
-            pcl_wait_save->clear();
-            scan_wait_num = 0;
+            // pcd_writer.writeBinary(all_points_dir, *pcl_wait_save);
+            
+            // pclToLaszip(pcl_wait_save, pcd_save_path);
+            // pcl_wait_save->clear();
+            // scan_wait_num = 0;
         }
     }
 }
@@ -763,7 +926,8 @@ void printProgress(double percentage) {
 int main(int argc, char **argv) {
     ros::init(argc, argv, "laserMapping");
     ros::NodeHandle nh;
-
+    
+    
     nh.param<int>("max_iteration", NUM_MAX_ITERATIONS, 4);
     nh.param<int>("point_filter_num", p_pre->point_filter_num, 2);
     nh.param<string>("map_file_path", map_file_path, "");
@@ -797,6 +961,7 @@ int main(int argc, char **argv) {
     nh.param<bool>("runtime_pos_log_enable", runtime_pos_log, 0);
     nh.param<bool>("pcd_save/pcd_save_en", pcd_save_en, false);
     nh.param<int>("pcd_save/interval", pcd_save_interval, -1);
+    nh.param<string>("pcd_save_path",pcd_save_path,"/home/admin/workspace/src/PCD/PCD.pcd");
 
     cout << "lidar_type: " << lidar_type << endl;
     cout << "LiDAR-only odometry starts." << endl;
