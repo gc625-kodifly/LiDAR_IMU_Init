@@ -891,7 +891,7 @@ int main(int argc, char **argv) {
     while (status) {
         if (flg_exit) break;
         ros::spinOnce();
-        if (sync_packages(Measures)) {
+        if (sync_packages_only_lidar(Measures)) {
             if (flg_reset) {
                 ROS_WARN("reset when rosbag play back.");
                 p_imu->Reset();
@@ -1169,25 +1169,25 @@ int main(int argc, char **argv) {
                      << state.gravity.transpose() << " " << total_distance << endl;
 
             //Broadcast every second
-            if (imu_en && frame_num % orig_odom_freq * cut_frame_num == 0 && !online_calib_finish) {
-                double online_calib_completeness = lidar_end_time - online_calib_starts_time;
-                online_calib_completeness =
-                        online_calib_completeness < online_refine_time ? online_calib_completeness : online_refine_time;
-                cout << "\x1B[2J\x1B[H"; //clear the screen
-                if(online_refine_time > 0.1)
-                    printProgress(online_calib_completeness / online_refine_time);
-                if (!refine_print && online_calib_completeness > (online_refine_time - 1e-6)) {
-                    refine_print = true;
-                    online_calib_finish = true;
-                    cout << endl;
-                    print_refine_result();
-                    fout_result << "Refinement result:" << endl;
-                    fileout_calib_result();
-                    string path = ros::package::getPath("lidar_imu_init");
-                    path += "/result/Initialization_result.txt";
-                    cout << endl  << "Initialization and refinement result is written to " << endl << BOLDGREEN << path << RESET <<endl;
-                }
-            }
+            // if (imu_en && frame_num % orig_odom_freq * cut_frame_num == 0 && !online_calib_finish) {
+            //     double online_calib_completeness = lidar_end_time - online_calib_starts_time;
+            //     online_calib_completeness =
+            //             online_calib_completeness < online_refine_time ? online_calib_completeness : online_refine_time;
+            //     cout << "\x1B[2J\x1B[H"; //clear the screen
+            //     if(online_refine_time > 0.1)
+            //         printProgress(online_calib_completeness / online_refine_time);
+            //     if (!refine_print && online_calib_completeness > (online_refine_time - 1e-6)) {
+            //         refine_print = true;
+            //         online_calib_finish = true;
+            //         cout << endl;
+            //         print_refine_result();
+            //         fout_result << "Refinement result:" << endl;
+            //         fileout_calib_result();
+            //         string path = ros::package::getPath("lidar_imu_init");
+            //         path += "/result/Initialization_result.txt";
+            //         cout << endl  << "Initialization and refinement result is written to " << endl << BOLDGREEN << path << RESET <<endl;
+            //     }
+            // }
 
 
             if (!imu_en && !data_accum_finished && data_accum_start) {
@@ -1231,8 +1231,8 @@ int main(int argc, char **argv) {
                     p_imu->set_acc_bias_cov(V3D(0.0001, 0.0001, 0.0001));
 
                     //Output Initialization result
-                    fout_result << "Initialization result:" << endl;
-                    fileout_calib_result();
+                    // fout_result << "Initialization result:" << endl;
+                    // fileout_calib_result();
                 }
             }
         }
@@ -1240,10 +1240,10 @@ int main(int argc, char **argv) {
         rate.sleep();
     }
 
-    cout << endl << REDPURPLE << "[Exit]: Exit the process." <<RESET <<endl;
-    if (!online_calib_finish) {
-        cout << YELLOW << "[WARN]: Online refinement not finished yet." << RESET;
-        print_refine_result();
-    }
+    // cout << endl << REDPURPLE << "[Exit]: Exit the process." <<RESET <<endl;
+    // if (!online_calib_finish) {
+    //     cout << YELLOW << "[WARN]: Online refinement not finished yet." << RESET;
+    //     print_refine_result();
+    // }
     return 0;
 }
