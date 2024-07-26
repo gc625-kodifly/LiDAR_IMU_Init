@@ -668,6 +668,8 @@ bool sync_packages_only_lidar(MeasureGroup &meas) {
     lidar_buffer.pop_front();
     time_buffer.pop_front();
     lidar_pushed = false;
+    std::cout << "sync packages, lidar buffer size: " << lidar_buffer.size() << '\n';
+    
     return true;
 }
 
@@ -1354,8 +1356,8 @@ int main(int argc, char **argv) {
             //     }
             // }
 
-
-            if (!imu_en && !data_accum_finished && data_accum_start) {
+            if (0){
+            // if (!imu_en && !data_accum_finished && data_accum_start) {
                 //Push Lidar's Angular velocity and linear velocity
                 Init_LI->push_Lidar_CalibState(state.rot_end, state.bias_g, state.vel_end, lidar_end_time);
                 //Data Accumulation Sufficience Appraisal
