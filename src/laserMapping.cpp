@@ -50,7 +50,7 @@
 #include "preprocess.h"
 #include <ikd-Tree/ikd_Tree.h>
 #include <LI_init/LI_init.h>
-#include <liblas/capi/las_config.h>
+// #include <liblas/capi/las_config.h>
 #include <laszip/laszip_api.h>
 #include <pcl/common/common.h>
 #ifndef DEPLOY
@@ -239,7 +239,7 @@ void pclToLaszip(const pcl::PointCloud<pcl::PointXYZINormal>::Ptr& cloud, const 
     header->min_y = minPt.y;
     header->min_z = minPt.z;
     char* file_name_out = 0;
-    file_name_out = LASCopyString(filename.c_str());
+    file_name_out = strdup(filename.c_str());
     laszip_BOOL compress = (strstr(file_name_out, ".laz") != 0);
 
     if (laszip_open_writer(laszip_writer, file_name_out, compress))
@@ -343,6 +343,7 @@ void SigHandle(int sig) {
     if (pcd_save_en && pcd_save_interval < 0){
         // all_points_dir = string(root_dir + "/PCD/PCD_all" + string(".pcd"));
         // pcd_writer.writeBinary(pcd_save_path, *pcl_wait_save);
+        cout << "pcd_save_path: " + pcd_save_path << endl;
         pclToLaszip(pcl_wait_save, pcd_save_path);
     
     }
