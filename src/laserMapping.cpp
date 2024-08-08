@@ -1326,7 +1326,7 @@ int main(int argc, char **argv) {
     nh.param<vector<double>>("color_mapping/extrinsic_R", extrinR_lc, vector<double>());
     nh.param<vector<double>>("color_mapping/K_camera", K_camera, vector<double>());
     nh.param<vector<double>>("color_mapping/D_camera", D_camera, vector<double>());
-    nh.param<bool>("use_color", use_color, true);  
+    nh.param<bool>("color_mapping/use_color", use_color, true);  
 
     Camera_T_wrt_Lidar<<VEC_FROM_ARRAY(extrinT_lc);
     Camera_R_wrt_Lidar<<MAT_FROM_ARRAY(extrinR_lc);
