@@ -26,6 +26,24 @@ mapping:
     b_gyr_cov: 0.0001
     det_range:     260.0
 
+color_mapping:
+    use_color: true
+    K_camera: [766.38136,   0     , 628.1358 ,
+           0     , 720.66146, 348.08063,
+           0     ,   0     ,   1.     ]
+    D_camera: [-0.327005, 0.077308, 0.000458, 0.002563, 0.000000]
+    time_offset_lidar_to_camera: 0                # ms         # lidar to camera
+
+    extrinsic_T: [0.10319 ,0.69730 , 0.34090]          # lidar to camera
+    extrinsic_R: [-0.07069,  0.99665,   -0.04124,
+                  -0.20849,  0.02567,   0.97769,
+                  0.97547 ,  0.07771,   0.20597]
+
+# -0.07069  -0.20849  0.97547   -0.17987  
+# 0.99665   0.02567   0.07771   -0.14724  
+# -0.04124  0.97769   0.20597   -0.74770 
+
+
 publish:
     path_en:  true
     scan_publish_en:  true       # false: close all the point cloud output

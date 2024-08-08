@@ -142,6 +142,36 @@ POINT_CLOUD_REGISTER_POINT_STRUCT(innovusion_ros::Point,
     (uint16_t, scan_idx, scan_idx)
     (uint8_t, is_2nd_return, is_2nd_return)
 )
+
+struct PointXYZRGBI
+{
+  PCL_ADD_POINT4D;                  // This macro adds the members x, y, z which can also be accessed using the array 'data'
+  uint8_t r, g, b, a;               // Standard 8-bit RGBA color (PCL uses alpha channel as well!)
+  float intensity;                  // A float for intensity
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW   // Ensure proper alignment for new allocations
+
+  // Constructor with default values
+  PointXYZRGBI(float x = 0.0f, float y = 0.0f, float z = 0.0f,
+               uint8_t red = 0, uint8_t green = 0, uint8_t blue = 0,
+               float inten = 0.0f)
+    : x(x), y(y), z(z), r(red), g(green), b(blue), a(255), intensity(inten)
+  {
+    data[3] = 1.0f; // Ensures the w component of data is always 1
+  }
+} EIGEN_ALIGN16;
+
+POINT_CLOUD_REGISTER_POINT_STRUCT(PointXYZRGBI,           // Register the new point type
+                                  (float, x, x)
+                                  (float, y, y)
+                                  (float, z, z)
+                                  (uint8_t, r, r)
+                                  (uint8_t, g, g)
+                                  (uint8_t, b, b)
+                                  (float, intensity, intensity)
+)
+
+
+
 class Preprocess
 {
   public:
